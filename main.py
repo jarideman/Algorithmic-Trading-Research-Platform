@@ -1,9 +1,15 @@
 import MetaTrader5 as mt5
 import pandas as pd
+import config
+
+from connection.mt5_connection import init_mt5, deinit_mt5
 from validation.rates_validation import validate_rates
 from validation.gaps import detect_gaps
 from storage.csv_storage import save_rates
-import config
+from processing.analysis import (
+    analyze_rates,
+    calculate_statistics,
+)
 
 SYMBOL = config.SYMBOL
 TIMEFRAME = config.TIMEFRAME
@@ -18,36 +24,28 @@ def main():
 
         if df is not None and validate_rates(df):
 
-            gaps = detect_gaps(df)
+            df = df.sort_values("time").reset_index(drop=True)
 
-            if not gaps.empty:
-                print(gaps.to_string(index=False))
+            detect_gaps(df)
 
-            save_rates(
-                df,
-                symbol=SYMBOL,
-                timeframe="H1"
+            save_rates(df, SYMBOL, TIMEFRAME)
+
+            analyzed_df = analyze_rates(df)
+
+            stats = calculate_statistics(analyzed_df)
+
+            print("\nMarket Statistics")
+
+            for name, value in stats.items():
+                print(f"{name}: {value}")
+
+            analyzed_df.to_csv(
+                "data/processed/BTCUSD_H1_analysis.csv",
+                index=False
             )
 
     finally:
         deinit_mt5()
-
-def init_mt5():
-    if not mt5.initialize():
-        print('MT5 initialization failed')
-        return False
-
-    if not mt5.symbol_select(SYMBOL, True):
-        print('Symbol not found')
-        deinit_mt5()
-        return False
-
-    print('MT5 initialization successful')
-    return True
-
-def deinit_mt5():
-    mt5.shutdown()
-    return
 
 def get_rates():
     rates = mt5.copy_rates_from_pos(
