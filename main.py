@@ -1,6 +1,8 @@
 import MetaTrader5 as mt5
 import pandas as pd
-from validation import validate_rates
+from validation.rates_validation import validate_rates
+from validation.gaps import detect_gaps
+from storage.csv_storage import save_rates
 import config
 
 SYMBOL = config.SYMBOL
@@ -14,10 +16,18 @@ def main():
     try:
         df = get_rates()
 
-        if df is not None:
-            is_valid = validate_rates(df)
+        if df is not None and validate_rates(df):
 
-            print(f"Data valid: {is_valid}")
+            gaps = detect_gaps(df)
+
+            if not gaps.empty:
+                print(gaps.to_string(index=False))
+
+            save_rates(
+                df,
+                symbol=SYMBOL,
+                timeframe="H1"
+            )
 
     finally:
         deinit_mt5()
