@@ -1,6 +1,4 @@
-
 import pandas as pd
-
 
 def validate_rates(df: pd.DataFrame) -> bool:
     if df is None or df.empty:
