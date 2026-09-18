@@ -1,3 +1,5 @@
 import MetaTrader5 as mt5
 
 SYMBOL= "BTCUSD"
+TIMEFRAME = mt5.TIMEFRAME_H1
+CANDLE_COUNT = 1000
