@@ -1,5 +1,6 @@
 import MetaTrader5 as mt5
 import pandas as pd
+from validation import validate_rates
 import config
 
 SYMBOL = config.SYMBOL
@@ -14,8 +15,9 @@ def main():
         df = get_rates()
 
         if df is not None:
-            print(df.head())
-            print(df.info())
+            is_valid = validate_rates(df)
+
+            print(f"Data valid: {is_valid}")
 
     finally:
         deinit_mt5()
@@ -55,7 +57,6 @@ def get_rates():
 
     df = pd.DataFrame(rates)
 
-    # Convert Unix timestamps to readable UTC datetimes
     df["time"] = pd.to_datetime(
         df["time"],
         unit="s",
