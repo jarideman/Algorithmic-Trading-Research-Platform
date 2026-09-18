@@ -4,23 +4,23 @@ import numpy as np
 def analyze_rates(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
-    # Calculate hourly percentage returns
     df["return"] = df["close"].pct_change()
-
-    # Calculate logarithmic returns
     df["log_return"] = np.log(
         df["close"] / df["close"].shift(1)
     )
 
-    # Rolling volatility over 24 candles
     df["volatility_24h"] = (
         df["log_return"]
         .rolling(window=24)
         .std()
     )
 
-    # Calculate price change
     df["price_change"] = df["close"].diff()
+
+    equity = df["close"] / df["close"].iloc[0]
+    peak = equity.cummax()
+
+    df["drawdown"] = equity / peak - 1
 
     return df
 
