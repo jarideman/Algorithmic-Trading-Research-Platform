@@ -5,6 +5,7 @@ from validation.rates_validation import validate_rates
 from validation.gaps import detect_gaps
 from storage.csv_storage import save_rates
 from processing.analysis import analyze_rates, calculate_statistics
+from visualization.charts import plot_drawdown, plot_price, plot_volatility
 
 
 def run_market_data_pipeline():
@@ -28,6 +29,10 @@ def run_market_data_pipeline():
     save_rates(df, SYMBOL, TIMEFRAME)
 
     analyzed_df = analyze_rates(df)
+
+    plot_price(analyzed_df)
+    plot_volatility(analyzed_df)
+    plot_drawdown(analyzed_df)
 
     stats = calculate_statistics(analyzed_df)
 
