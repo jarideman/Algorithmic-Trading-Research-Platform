@@ -1,16 +1,24 @@
 import MetaTrader5 as mt5
+import pandas as pd
 import config
 
 SYMBOL = config.SYMBOL
+TIMEFRAME = config.TIMEFRAME
+CANDLE_COUNT = config.CANDLE_COUNT
 
 def main():
-    if init_mt5():
-        while loop():
-            pass
-    
-    deinit_mt5()
+    if not init_mt5():
+        return
 
-    return
+    try:
+        df = get_rates()
+
+        if df is not None:
+            print(df.head())
+            print(df.info())
+
+    finally:
+        deinit_mt5()
 
 def init_mt5():
     if not mt5.initialize():
@@ -29,8 +37,34 @@ def deinit_mt5():
     mt5.shutdown()
     return
 
-def loop():
-    pass
+def get_rates():
+    rates = mt5.copy_rates_from_pos(
+        SYMBOL,
+        TIMEFRAME,
+        0,
+        CANDLE_COUNT
+    )
+
+    if rates is None:
+        print(f"Failed to retrieve rates: {mt5.last_error()}")
+        return None
+
+    if len(rates) == 0:
+        print("No rates received")
+        return None
+
+    df = pd.DataFrame(rates)
+
+    # Convert Unix timestamps to readable UTC datetimes
+    df["time"] = pd.to_datetime(
+        df["time"],
+        unit="s",
+        utc=True
+    )
+
+    print(f"Retrieved {len(df)} candles for {SYMBOL}")
+
+    return df
 
 if __name__ == "__main__":
     main()
