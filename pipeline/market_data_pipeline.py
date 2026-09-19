@@ -5,13 +5,20 @@ from validation.rates_validation import validate_rates
 from validation.gaps import detect_gaps
 from storage.csv_storage import save_rates
 from processing.analysis import analyze_rates, calculate_statistics
-from visualization.charts import plot_drawdown, plot_price, plot_volatility
+from visualization.charts import plot_drawdown, plot_drawdown_curve, plot_equity_curve, plot_price, plot_volatility
 from research.volatility_regimes import (
     analyze_volatility_regimes,
     summarize_volatility_regimes,
     calculate_confidence_intervals,
 )
-from backtesting.backtest import backtest_low_volatility, calculate_exposure, calculate_strategy_statistics, calculate_buy_and_hold_return
+from backtesting.backtest import (
+    backtest_low_volatility,
+    calculate_exposure,
+    calculate_strategy_statistics,
+    calculate_buy_and_hold_return,
+    build_equity_curves,
+    calculate_equity_drawdown,
+)
 
 def run_market_data_pipeline():
     df = get_rates()
@@ -57,6 +64,21 @@ def run_market_data_pipeline():
         horizon=24,
     )
 
+    equity_df = build_equity_curves(
+        test_df,
+        backtest_df,
+    )
+
+    equity_stats = calculate_equity_drawdown(
+        equity_df,
+    )
+
+    print("\nMark-to-Market Equity Statistics")
+    print(
+        f"max_drawdown: "
+        f"{equity_stats['max_drawdown']:.3%}"
+    )
+
     print("\nExecuted Trades")
     print(backtest_df)
 
@@ -85,6 +107,8 @@ def run_market_data_pipeline():
     # plot_price(analyzed_df)
     # plot_volatility(analyzed_df)
     # plot_drawdown(analyzed_df)
+    plot_equity_curve(equity_df)
+    plot_drawdown_curve(equity_df)
 
     # stats = calculate_statistics(analyzed_df)
 

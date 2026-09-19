@@ -50,11 +50,15 @@ def calculate_strategy_statistics(
 
     equity_curve = (1 + trades).cumprod()
 
-    running_max = equity_curve.cummax()
+    # Include starting equity of 1.0
+    equity_with_start = pd.concat(
+        [pd.Series([1.0]), equity_curve],
+        ignore_index=True,
+    )
 
+    running_max = equity_with_start.cummax()
     drawdown = (
-        equity_curve / running_max
-        - 1
+        equity_with_start / running_max - 1
     )
 
     return {
@@ -95,3 +99,67 @@ def calculate_exposure(
     ).dt.total_seconds().sum() / 3600
 
     return invested_hours / total_hours
+
+def build_equity_curves(
+    df: pd.DataFrame,
+    trades: pd.DataFrame,
+) -> pd.DataFrame:
+
+    result = df[["time", "close"]].copy()
+
+    # Buy & Hold
+    result["buy_hold_equity"] = (
+        result["close"] / result.iloc[0]["close"]
+    )
+
+    # Strategy equity
+    result["strategy_equity"] = 1.0
+
+    equity = 1.0
+
+    for _, trade in trades.iterrows():
+
+        entry_time = trade["entry_time"]
+        exit_time = trade["exit_time"]
+        entry_price = trade["entry_price"]
+
+        mask = (
+            (result["time"] >= entry_time)
+            & (result["time"] <= exit_time)
+        )
+
+        # Mark-to-market P&L while trade is open
+        result.loc[mask, "strategy_equity"] = (
+            equity
+            * result.loc[mask, "close"]
+            / entry_price
+        )
+
+        # Realized equity after exit
+        exit_price = trade["exit_price"]
+
+        equity *= exit_price / entry_price
+
+        result.loc[
+            result["time"] > exit_time,
+            "strategy_equity",
+        ] = equity
+
+    return result
+
+def calculate_equity_drawdown(
+    equity_df: pd.DataFrame,
+) -> dict:
+
+    equity = equity_df["strategy_equity"]
+
+    running_max = equity.cummax()
+
+    drawdown = (
+        equity / running_max - 1
+    )
+
+    return {
+        "max_drawdown": drawdown.min(),
+        "drawdown_series": drawdown,
+    }
