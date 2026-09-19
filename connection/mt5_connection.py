@@ -1,7 +1,5 @@
 import MetaTrader5 as mt5
-import config
-
-SYMBOL = config.SYMBOL
+from config import SYMBOL
 
 def init_mt5():
     if not mt5.initialize():
